@@ -1,0 +1,41 @@
+FROM debian:bullseye
+
+# Update the system and install dependencies
+RUN apt-get update && apt-get install -y \
+    python3 python3-pip \
+    curl git wget golang \
+    && apt-get clean
+
+# Install ProjectDiscovery tools
+RUN git clone https://github.com/projectdiscovery/nuclei.git /opt/nuclei && \
+    cd /opt/nuclei && go build && mv nuclei /usr/local/bin/
+
+RUN git clone https://github.com/projectdiscovery/subfinder.git /opt/subfinder && \
+    cd /opt/subfinder && go build && mv subfinder /usr/local/bin/
+
+RUN git clone https://github.com/projectdiscovery/httpx.git /opt/httpx && \
+    cd /opt/httpx && go build && mv httpx /usr/local/bin/
+
+RUN git clone https://github.com/projectdiscovery/naabu.git /opt/naabu && \
+    cd /opt/naabu && go build && mv naabu /usr/local/bin/
+
+RUN git clone https://github.com/projectdiscovery/dnsx.git /opt/dnsx && \
+    cd /opt/dnsx && go build && mv dnsx /usr/local/bin/
+
+# Install Python dependencies for AI/ML
+COPY requirements.txt /opt/requirements.txt
+RUN pip3 install -r /opt/requirements.txt
+
+# Add custom scripts
+COPY scripts /opt/scripts/
+RUN chmod +x /opt/scripts/*.sh
+
+# Add Nuclei configuration and templates
+COPY nuclei-config /opt/nuclei-config/
+RUN nuclei -ut -config /opt/nuclei-config/config.yaml
+
+# Expose API port (optional)
+EXPOSE 5000
+
+# Set default command
+CMD ["/bin/bash"]
